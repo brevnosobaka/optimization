@@ -1,0 +1,135 @@
+#include <iostream>
+#include <iomanip>
+#include <cmath>
+#include <functional>
+#include <clocale>
+using namespace std;
+double f(double x) {
+    return pow(x, 2) - 2 * x - 2 * cos(x);
+}
+double quadraticInterpolation(double* x, double delta_x, double eps1, double eps2){
+    cout << "Начальная точка x1 = " << x[1] << endl;
+    cout << "Шаг delta_x = " << delta_x << endl;
+    cout << "eps1 = " << eps1 << ", eps2 = " << eps2  << endl;
+//шаг 2
+    for (int k = 0; k < 100; k++) {
+        cout <<"\n"<< k + 1 <<"итерация" << endl;
+        x[2] = x[1] + delta_x;
+        cout << "x2 = " << x[2] << endl;
+        //шаг3
+        double f1 = f(x[1]);
+        double f2 = f(x[2]);
+        cout << "f1= " << f1 << ", f2= " << f2 << endl;
+        //шаг4
+
+        if (f(x[1]) > f(x[2])) {
+            x[3] = x[1] + (2 * delta_x);
+            cout << "f1 > f2 => x3= " << x[3] << endl;
+        }
+        else {
+            x[3] = x[1] - delta_x;
+            cout << "f1 < или = f2 => x3= " << x[3] << endl;
+        }
+
+        //шаг5
+        double f3 = f(x[3]);
+        cout << "f3= " << f3 << endl;
+
+        //шаг6
+        double Fmin = min({ f1, f2, f3 });
+        double x_min;
+        if (Fmin == f1) {
+            x_min = x[1];
+        }
+        else if (Fmin == f2) {
+            x_min = x[2];
+        }
+        else {
+            x_min = x[3];
+        }
+        cout << "Fmin= " << Fmin << ", x_min= " << x_min << endl;
+        //шаг7
+        double denominator = (x[2] - x[3]) * f1 + (x[3] - x[1]) * f2 + (x[1] - x[2]) * f3;
+        double x_wave;
+        if (abs(denominator) < 1e-15) {
+            cout << "Знаменатель близок к нулю => x1 = x_min = " << x_min << endl;
+            x[1] = x_min;
+            continue;
+        }
+        else {
+            x_wave = 0.5 * (((pow(x[2], 2) - pow(x[3], 2)) * f1 + (pow(x[3], 2) - pow(x[1], 2)) * f2 +(pow(x[1], 2) - pow(x[2], 2)) * f3 ) / denominator);
+        }
+        double f_wave = f(x_wave);
+        cout << "f(x с волной) = " << f_wave << endl;
+        //шаг8 
+        double x_best = 0.0;
+        double f_best = f(x_best);
+        double left = min(x[1], x[3]);
+        double right = max(x[1], x[3]);
+        cout << "Интервал [x1, x3] = [" << left << ", " << right << "]" << endl;
+        if( abs((Fmin-f_wave)/ f_wave)<eps1 && abs((x_min - x_wave) / x_wave) < eps2){
+            x_best = x_wave;
+            cout << "модули меньше эпсилон. Наилучшая точка: " << x_best << endl;
+            return x_best;
+        }
+        else if(x_wave >= left && x_wave <= right){
+            if (f_wave < Fmin) {
+                x_best = x_wave;
+                f_best = f_wave;
+                cout << "х с волной входит в интервал. Наилучшая точка - х с волной: " << x_best << ", f(х  с волной)=" << f_best << endl;
+            }
+            else {
+                x_best = x_min;
+                f_best = Fmin;
+                cout << "х с волной входит в интервал. Наилучшая точка - х_min: " << x_best << ", f(х_min)=" <<  Fmin<< endl;
+            }
+            x[1] = x_best - delta_x;
+            x[2] = x_best;
+            x[3] = x_best + delta_x;
+            cout << "Строим новые точки вокруг наилучшей: " <<"x1=" << x[1]<< ", x2= " << x[2]<< ", x3"<<x[3]<< endl;
+        }
+        else {
+            x[1] = x_wave;
+            cout << "х с волной не входит в интервал. x1=х с волной. Начинаем сначала." << endl;
+        }
+    }
+}
+int main()
+{
+    setlocale(LC_ALL, "Russian");
+    double delta_x;
+    double eps1;
+    double eps2;
+    const int iterator = 4;
+    double* x = new double[iterator];
+
+    //шаг1 начало
+    cout << "Введите начальную точку х1: ";
+    cin >> x[1];
+
+    cout << "Введите шаг: ";
+    cin >> delta_x;
+    if(delta_x<=0){
+        cout << "Шаг не может быть нулевым или меньше нуля!"; 
+        return 1;
+    }
+
+	cout << "Введите эпсилон1: ";
+    cin >> eps1;
+    if (eps1 <= 0) { 
+        cout << "Эпсилон1 не может быть нулевым или меньше нуля!"; 
+        return 1;
+    }
+
+    cout << "Введите эпсилон2: ";
+    cin >> eps2;
+    if (eps2 <= 0) { 
+        cout << "Эпсилон2 не может быть нулевым или меньше нуля!"; 
+        return 1;
+    }
+//шаг1 конец
+    double result = quadraticInterpolation(x, delta_x, eps1, eps2);
+    cout << "Результат: x_min = " << result << ", f(x_min) = " << f(result) << endl;
+    delete[] x;
+    return 0;
+}
