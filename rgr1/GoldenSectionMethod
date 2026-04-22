@@ -1,0 +1,96 @@
+#include <iostream>
+#include <iomanip>
+#include <cmath>
+#include <functional>
+#include <clocale>
+using namespace std;
+double f(double x) {
+    return pow(x, 2) - 2 * x - 2 * cos(x);
+}
+double goldenSection(double* a, double* b, double* y, double* z)
+{
+    const double t = (3.0 - sqrt(5.0)) / 2.0;
+    int L;//интервал
+    const double l = (b[0]-a[0]) / 10.0;
+    //шаг1
+    int k = 0;
+    //шаг2
+    y[0] = a[0] + t * (b[0] - a[0]);
+    //шаг3
+    z[0] = a[0] + b[0] - y[0];
+    //шаг4
+    double f_yk = f(y[k]);
+    double f_zk = f(z[k]);
+    //шаг5
+    cout << fixed << setprecision(8);
+    cout<< "\nИтерация " << k << ":\n"<< "a = " << a[k] << "\n"
+        << "b = " << b[k] << "\n"
+        << "y = " << y[k] << "\n"
+        << "z = " << z[k] << "\n"
+        << "f(y) = " << f_yk << "\n"
+        << "f(z) = " << f_zk << "\n"
+        << "|b-a| = " << abs(b[k] - a[k]) << "\n"
+        << "------------------------\n";
+   do {
+
+        if (f_yk<= f_zk)
+        {
+            a[k + 1] = a[k];
+            b[k + 1] = z[k];
+            y[k + 1] = a[k + 1] + b[k + 1] - y[k];
+            z[k + 1] = y[k];
+        }
+
+        else
+        {
+            a[k + 1] = y[k];
+            b[k + 1] = b[k];
+            y[k + 1] = z[k];
+            z[k + 1] = a[k + 1] + b[k + 1] - z[k];
+        }
+        k = k + 1;
+        f_yk = f(y[k]);
+        f_zk = f(z[k]);
+        cout << fixed << setprecision(8);
+        cout << "Итерация " << k << ":\n"
+            << "a = " << a[k] << "\n"
+            << "b = " << b[k] << "\n"
+            << "y = " << y[k] << "\n"
+            << "z = " << z[k] << "\n"
+            << "f(y) = " << f_yk << "\n"
+            << "f(z) = " << f_zk << "\n";
+            cout<< "|b-a| = " << abs(b[k] - a[k]) << "\n"
+            << "------------------------\n";
+    } 
+
+//шаг6
+   while (abs(a[k] - b[k]) > l);
+   return (a[k] + b[k]) / 2.0;
+}
+
+int main()
+{
+    setlocale(LC_ALL, "Russian");
+    const int index = 100;
+    double* a = new double[index];
+    double* b = new double[index];
+    double* y = new double[index];
+    double* z = new double[index];
+   
+    cout << "Введите левую границу a: ";
+    cin >> a[0];
+    cout << "Введите правую границу b: ";
+    cin >> b[0];
+
+    double x_min = goldenSection(a, b, y, z);
+    cout << fixed << setprecision(8);
+    cout << "Точка минимума: x = " << x_min << endl;
+    cout << "Значение функции: f(x) = " << f(x_min) << endl;
+
+    delete[] a;
+    delete[] b;
+    delete[] y;
+    delete[] z;
+
+    return 0;
+}
