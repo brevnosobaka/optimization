@@ -1,0 +1,184 @@
+#include <iostream>
+#include <iomanip>
+#include <cmath>
+#include <clocale>
+using namespace std;
+
+double f(double x1, double x2) {
+    return pow(1 - x1, 2) + 10 * pow(x2 - x1, 2);
+}
+
+void gradient(double x1, double x2, double& grad1, double& grad2) {
+    grad1 = -2 * (1 - x1) - 20 * (x2 - x1);
+    grad2 = 20 * (x2 - x1);
+}
+
+double norm_grad(double grad1, double grad2) {
+    return sqrt(grad1 * grad1 + grad2 * grad2);
+}
+
+void hessian(double x1, double x2, double& h11, double& h12, double& h21, double& h22) {
+    h11 = 22;
+    h12 = -20;
+    h21 = -20;
+    h22 = 20;
+}
+
+bool inverseHessian(double h11, double h12, double h21, double h22,
+    double& inv11, double& inv12, double& inv21, double& inv22) {
+    double det = h11 * h22 - h12 * h21;
+    if (abs(det) < 0.0) return false;
+    inv11 = h22 / det;
+    inv12 = -h12 / det;
+    inv21 = -h21 / det;
+    inv22 = h11 / det;
+    return true;
+}
+
+bool isPositiveDefinite(double a, double b, double c, double d) {
+    return (a > 0) && (a * d - b * c > 0);
+}
+
+int NewtonMethod(double x0_1, double x0_2, double epsilon1, double epsilon2, int M,
+    double& x_star1, double& x_star2, double& f_star) {
+    // Шаг 2
+    double x1 = x0_1, x2 = x0_2;
+    int k = 0;
+
+    cout << fixed << setprecision(6);
+    cout << "\n k   x1           x2           f(x)         ||grad||     t_k\n";
+    cout << "-------------------------------------------------------------------------\n";
+
+    double prev_norm = 0.0, prev_fdiff = 0.0;
+    bool first_check = true;
+
+    while (true) {
+        // Шаг 3
+        double grad1, grad2;
+        gradient(x1, x2, grad1, grad2);
+        double grad_norm = norm_grad(grad1, grad2);
+
+        // Шаг 4
+        if (grad_norm <= epsilon1) {
+            cout << " " << k << "   " << x1 << "  " << x2 << "  "
+                << f(x1, x2) << "  " << grad_norm << "    -" << endl;
+            cout << "\n||grad|| <= epsilon1\n";
+            x_star1 = x1; x_star2 = x2; f_star = f(x1, x2);
+            return k;
+        }
+
+        // Шаг 5
+        if (k >= M) {
+            cout << " " << k << "   " << x1 << "  " << x2 << "  "
+                << f(x1, x2) << "  " << grad_norm << "    -" << endl;
+            cout << "\nДостигнуто M\n";
+            x_star1 = x1; x_star2 = x2; f_star = f(x1, x2);
+            return k;
+        }
+
+        // Шаг 6
+        double h11, h12, h21, h22;
+        hessian(x1, x2, h11, h12, h21, h22);
+
+        // Шаг 7
+        double inv11, inv12, inv21, inv22;
+        bool inv_exists = inverseHessian(h11, h12, h21, h22, inv11, inv12, inv21, inv22);
+
+        double d1, d2;
+
+        // Шаг 8
+        if (inv_exists && isPositiveDefinite(inv11, inv12, inv21, inv22)) {
+            // Шаг 9
+            d1 = -(inv11 * grad1 + inv12 * grad2);
+            d2 = -(inv21 * grad1 + inv22 * grad2);
+        }
+        else {
+            // 8б
+            d1 = -grad1;
+            d2 = -grad2;
+        }
+
+        // Шаг 10
+        double t_k;
+        double x1_next, x2_next;
+
+        if (inv_exists && isPositiveDefinite(inv11, inv12, inv21, inv22)) {
+            t_k = 1.0;
+            x1_next = x1 + t_k * d1;
+            x2_next = x2 + t_k * d2;
+        }
+        else {
+            t_k = 1.0;
+            x1_next = x1 + t_k * d1;
+            x2_next = x2 + t_k * d2;
+            while (f(x1_next, x2_next) >= f(x1, x2)) {
+                t_k = t_k / 2.0;
+                x1_next = x1 + t_k * d1;
+                x2_next = x2 + t_k * d2;
+                if (t_k < 1e-15) break;
+            }
+        }
+
+        cout << " " << k << "   " << x1 << "  " << x2 << "  "
+            << f(x1, x2) << "  " << grad_norm << "  " << t_k << endl;
+
+        // Шаг 11
+        double diff_norm = sqrt(pow(x1_next - x1, 2) + pow(x2_next - x2, 2));
+        double diff_f = abs(f(x1_next, x2_next) - f(x1, x2));
+
+        if (!first_check) {
+            if (diff_norm < epsilon2 && diff_f < epsilon2 &&
+                prev_norm < epsilon2 && prev_fdiff < epsilon2) {
+                x_star1 = x1_next; x_star2 = x2_next; f_star = f(x1_next, x2_next);
+                return k + 1;
+            }
+        }
+        first_check = false;
+        prev_norm = diff_norm;
+        prev_fdiff = diff_f;
+
+        // 11б
+        x1 = x1_next;
+        x2 = x2_next;
+        k = k + 1;
+    }
+}
+
+int main() {
+    setlocale(LC_ALL, "Russian");
+    // Шаг 1
+    double x0_1, x0_2;
+    double epsilon1, epsilon2;
+    int M;
+
+    cout << "Функция: f(x) = (1 - x1)^2 + 10*(x2 - x1)^2\n\n";
+
+    cout << "Введите начальный вектор x^0:\n";
+    cout << "  x1 = "; 
+    cin >> x0_1;
+    cout << "  x2 = "; 
+    cin >> x0_2;
+
+    do {
+        cout << "epsilon1 > 0: "; cin >> epsilon1;
+        if (epsilon1 <= 0) cout << "Ошибка\n";
+    } while (epsilon1 <= 0);
+    do {
+        cout << "epsilon2 > 0: "; cin >> epsilon2;
+        if (epsilon2 <= 0) cout << "Ошибка\n";
+    } while (epsilon2 <= 0);
+    do {
+        cout << "M > 0: "; cin >> M;
+        if (M <= 0) cout << "Ошибка\n";
+    } while (M <= 0);
+
+    double x_star1, x_star2, f_xstar;
+    int iterations = NewtonMethod(x0_1, x0_2, epsilon1, epsilon2, M, x_star1, x_star2, f_xstar);
+
+    cout << "\n----- Результат -----\n";
+    cout << "x* = (" << x_star1 << ", " << x_star2 << ")^T\n";
+    cout << "f(x*) = " << f_xstar << "\n";
+    cout << "Итераций: " << iterations << "\n";
+
+    return 0;
+}
