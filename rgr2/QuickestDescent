@@ -1,0 +1,174 @@
+#include <iostream>
+#include <iomanip>
+#include <cmath>
+#include <clocale>
+using namespace std;
+
+double f(double x1, double x2) {
+    return pow(1 - x1, 2) + 10 * pow(x2 - x1, 2);
+}
+
+void gradient(double x1, double x2, double& df1, double& df2) {
+    df1 = -2 * (1 - x1) - 20 * (x2 - x1);  // по х1
+    df2 = 20 * (x2 - x1);                  // по х2
+}
+
+double norm(double df1, double df2) {
+    return sqrt(df1 * df1 + df2 * df2);
+}
+
+double x1_k, x2_k, df1_k, df2_k;
+double phi(double t) {//phi(t) = f(x^k - t * grad_f(x^k))
+    return f(x1_k - t * df1_k, x2_k - t * df2_k);
+}
+
+double goldenSection(double a0, double b0) {
+    const double t = (3.0 - sqrt(5.0)) / 2.0;
+    const int index = 100;
+    double a[index], b[index], y[index], z[index];
+    int k = 0;
+    a[0] = a0;
+    b[0] = b0;
+    const double l = (b[0] - a[0]) / 10.0;
+    y[0] = a[0] + t * (b[0] - a[0]);
+    z[0] = a[0] + b[0] - y[0];
+    double f_yk = phi(y[k]);
+    double f_zk = phi(z[k]);
+    do {
+        if (f_yk <= f_zk) {
+            a[k + 1] = a[k];
+            b[k + 1] = z[k];
+            y[k + 1] = a[k + 1] + b[k + 1] - y[k];
+            z[k + 1] = y[k];
+        }
+        else {
+            a[k + 1] = y[k];
+            b[k + 1] = b[k];
+            y[k + 1] = z[k];
+            z[k + 1] = a[k + 1] + b[k + 1] - z[k];
+        }
+        k = k + 1;
+        f_yk = phi(y[k]);
+        f_zk = phi(z[k]);
+    } while (fabs(a[k] - b[k]) > l);
+
+    return (a[k] + b[k]) / 2.0;
+}
+
+int QuickestDescent(double x0_1, double x0_2, double epsilon1, double epsilon2, int M,
+    double& x_star1, double& x_star2, double& f_star) {
+    //Шаг 2
+    int k = 0;
+    double x1 = x0_1, x2 = x0_2;
+
+    cout << fixed << setprecision(6);
+    cout << "\n k   x1           x2           f(x)         ||grad||     t_k*\n";
+    cout << "-------------------------------------------------------------------------\n";
+
+    while (true) {
+        //Шаг 3
+        double grad1, grad2;
+        gradient(x1, x2, grad1, grad2);
+        double grad_norm = norm(grad1, grad2);
+        //Шаг 4
+        if (grad_norm < epsilon1) {
+            //4а
+            cout << " " << k << "   " << x1 << "  " << x2 << "  "
+            << f(x1, x2) << "  " << grad_norm << "    -" << endl;
+            cout << "\n||grad|| < epsilon1\n";
+            x_star1 = x1; x_star2 = x2; f_star = f(x1, x2);
+            return k;
+        }
+        //Шаг 5
+        if (k >= M) {
+            //5а
+            cout << " " << k << "   " << x1 << "  " << x2 << "  "
+            << f(x1, x2) << "  " << grad_norm << "    -" << endl;
+            cout << "\nДостигнуто M\n";
+            x_star1 = x1; x_star2 = x2; f_star = f(x1, x2);
+            return k;
+        }
+        //Шаг 6
+        x1_k = x1; x2_k = x2; df1_k = grad1; df2_k = grad2;
+        double a = 0.0, b = 1.0;
+        double phi_a = phi(a), phi_b = phi(b);
+        while (phi_b < phi_a) {
+            a = b;
+            phi_a = phi_b;
+            b = b + 1.0;
+            phi_b = phi(b);
+        }
+        double t_kstar = goldenSection(a, b); 
+        //Шаг 7
+        double x1_next = x1 - t_kstar * grad1;
+        double x2_next = x2 - t_kstar * grad2;
+        cout << " " << k << "   " << x1 << "  " << x2 << "  "
+        << f(x1, x2) << "  " << grad_norm << "  " << t_kstar << endl;
+        //Шаг 8
+        double diff_norm = sqrt(pow(x1_next - x1, 2) + pow(x2_next - x2, 2));
+        double diff_f = fabs(f(x1_next, x2_next) - f(x1, x2));
+        static double prev_diff_norm = 0.0, prev_diff_f = 0.0;
+        static bool first_check = true;
+        if (!first_check) {
+            //8а
+            if (diff_norm < epsilon2 && diff_f < epsilon2 &&
+                prev_diff_norm < epsilon2 && prev_diff_f < epsilon2) {
+                cout << "\nКритерий по ||x^{k+1} - x^k|| и |f^{k+1} - f^k| "
+                    << "выполнен дважды подряд\n";
+                x_star1 = x1_next; x_star2 = x2_next; f_star = f(x1_next, x2_next);
+                return k + 1;
+            }
+        }
+        first_check = false;
+        prev_diff_norm = diff_norm;
+        prev_diff_f = diff_f;
+        //8б
+        x1 = x1_next;
+        x2 = x2_next;
+        k = k + 1;
+    }
+}
+
+int main() {
+    setlocale(LC_ALL, "Russian");
+    //Шаг 1
+    double x0_1, x0_2;
+    double epsilon1, epsilon2;
+    int M;
+    cout << "Введите начальный вектор х^0:\n";
+    cout << "  x1 = ";
+    cin >> x0_1;
+    cout << "  x2 = ";
+    cin >> x0_2;
+
+    do {
+        cout << "Введите epsilon1 (точность по норме градиента, > 0): ";
+        cin >> epsilon1;
+        if (epsilon1 <= 0) {
+            cout << "Ошибка: epsilon1 должен быть больше нуля. Повторите ввод.\n";
+        }
+    } while (epsilon1 <= 0);
+    do {
+        cout << "Введите epsilon2 (точность по изменению аргумента и функции, > 0): ";
+        cin >> epsilon2;
+        if (epsilon2 <= 0) {
+            cout << "Ошибка: epsilon2 должен быть больше нуля. Повторите ввод.\n";
+        }
+    } while (epsilon2 <= 0);
+    do {
+        cout << "Введите предельное число итераций M (M > 0): ";
+        cin >> M;
+        if (M <= 0) {
+            cout << "Ошибка: M должен быть больше нуля. Повторите ввод.\n";
+        }
+    } while (M <= 0);
+    //
+    double x_star1, x_star2, f_xstar;
+    int iterations = QuickestDescent(x0_1, x0_2, epsilon1, epsilon2, M, x_star1, x_star2, f_xstar);
+    cout << "\n----- Результат -----\n";
+    cout << "x* = (" << x_star1 << ", " << x_star2 << ")^T\n";
+    cout << "f(x*) = " << f_xstar << "\n";
+    cout << "Количество итераций: " << iterations << "\n";
+
+    return 0;
+}
