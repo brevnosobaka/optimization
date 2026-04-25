@@ -113,8 +113,6 @@ int QuickestDescent(double x0_1, double x0_2, double epsilon1, double epsilon2, 
             //8а
             if (diff_norm < epsilon2 && diff_f < epsilon2 &&
                 prev_diff_norm < epsilon2 && prev_diff_f < epsilon2) {
-                cout << "\nКритерий по ||x^{k+1} - x^k|| и |f^{k+1} - f^k| "
-                    << "выполнен дважды подряд\n";
                 x_star1 = x1_next; x_star2 = x2_next; f_star = f(x1_next, x2_next);
                 return k + 1;
             }
