@@ -50,7 +50,7 @@ double goldenSection(double a0, double b0) {
         k = k + 1;
         f_yk = phi(y[k]);
         f_zk = phi(z[k]);
-    } while (fabs(a[k] - b[k]) > l);
+    } while (abs(a[k] - b[k]) > l);
 
     return (a[k] + b[k]) / 2.0;
 }
@@ -106,7 +106,7 @@ int QuickestDescent(double x0_1, double x0_2, double epsilon1, double epsilon2, 
         << f(x1, x2) << "  " << grad_norm << "  " << t_kstar << endl;
         //Шаг 8
         double diff_norm = sqrt(pow(x1_next - x1, 2) + pow(x2_next - x2, 2));
-        double diff_f = fabs(f(x1_next, x2_next) - f(x1, x2));
+        double diff_f = abs(f(x1_next, x2_next) - f(x1, x2));
         static double prev_diff_norm = 0.0, prev_diff_f = 0.0;
         static bool first_check = true;
         if (!first_check) {
