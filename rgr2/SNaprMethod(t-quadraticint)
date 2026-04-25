@@ -133,7 +133,7 @@ int PowellMethod(double x0_1, double x0_2, double epsilon, int M,
         }
 
         // Шаг 3в
-        if (abs(y[n + 1][0] - y[1][0]) < 1e-10 && abs(y[n + 1][1] - y[1][1]) < 1e-10) {
+        if (abs(y[n + 1][0] - y[1][0]) < 0 && abs(y[n + 1][1] - y[1][1]) < 0) {
             x_star1 = y[n + 1][0]; x_star2 = y[n + 1][1]; f_star = f(x_star1, x_star2);
             return k;
         }
